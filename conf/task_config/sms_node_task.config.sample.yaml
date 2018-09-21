@@ -1,0 +1,40 @@
+owner: owner
+repo: repo
+auth:
+  host: host
+  port: port
+  user: user
+  password: password
+
+sms:
+  sms_server: sms_server
+  sms_user: sms_user
+  sms_password: sms_password
+
+task_list:
+  -
+    name: geps_t639 00H
+    type: sms-node
+    trigger:
+      -
+        type: time
+        time: '04:02:00'
+    nodes:
+      -
+        node_path: /geps_t639/00
+        check_list:
+          -
+            type: variable
+            name: SMSDATE
+            value:
+              type: date
+              operator: equal
+              fields: current
+          -
+            type: status
+            value:
+              operator: in
+              fields:
+                - submitted
+                - active
+                - complete

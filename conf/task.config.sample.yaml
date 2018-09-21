@@ -1,0 +1,73 @@
+sms_status_task:
+  hpc:
+    user: user
+    host: host
+    password: password
+
+  project:
+    dir: nwpc_sms_collector dir
+    program: python binary
+    script: sms_status_collector.py collect --config=config_file_path
+
+group_sms_status_task:
+  -
+    owner: owner
+    repo: repo
+    sms_user: sms_user
+    sms_name: sms_name
+    user: user
+    password: password
+
+
+update_dingtalk_token_task:
+  url: http://broker_host:broker_port/api/v2/dingtalk/access_token/get
+
+update_weixin_token_task:
+  url: http://broker_host:broker_port/api/v2/weixin/access_token/get
+
+sms_node_task:
+  project:
+    dir: nwpc_sms_collector dir
+    program: python binary
+    script: sms_node_collector.py variable
+  repo_config_dir: ./sms_node_task
+  post:
+    url: http://broker_host:broker_port/api/v2/hpc/sms/{owner}/{repo}/task-check
+
+
+hpc:
+  disk_usage:
+    project:
+      dir: nwpc_hpc_collector dir
+      program: python binary
+      script: disk_usage.py collect --config=config_file_path
+    task_group:
+      -
+        user: user
+        password: password
+        host: host
+        port: port
+
+  disk_space:
+    project:
+      dir: nwpc_hpc_collector dir
+      program: python binary
+      script: disk_space.py collect --config=config_file_path
+    task_group:
+      -
+        user: user
+        password: password
+        host: host
+        port: port
+
+  loadleveler_status:
+    project:
+      dir: nwpc_hpc_collector dir
+      program: python binary
+      script: loadleveler_status.py collect --config=config_file_path
+    task_group:
+      -
+        user: user
+        password: password
+        host: host
+        port: port
