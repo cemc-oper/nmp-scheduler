@@ -185,10 +185,8 @@ def check_sms_node(project_conf, sms_info, sms_node):
                         else:
                             is_condition_fit = False
 
-                        check_result['value'] = {
-                                'expected_value': expected_var_value,
-                                'value': var.value,
-                        }
+                        check_result['value'] = var.value
+                        check_result['expected_value'] = expected_var_value
                         check_result['is_condition_fit'] = is_condition_fit
 
             elif check_type == 'status':
@@ -199,10 +197,9 @@ def check_sms_node(project_conf, sms_info, sms_node):
                         is_condition_fit = True
                     else:
                         is_condition_fit = False
-                check_result['value'] = {
-                    'expected_value': a_check_item['value'],
-                    'value': status
-                }
+
+                check_result['value'] = status
+                check_result['expected_value'] = a_check_item['value']
                 check_result['is_condition_fit'] = is_condition_fit
 
             if is_condition_fit is None:
