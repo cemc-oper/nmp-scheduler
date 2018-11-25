@@ -18,7 +18,7 @@ class CeleryConfig(object):
             if 'rabbitmq' in broker_config:
                 rabbitmq_host = broker_config['rabbitmq']['host']
                 rabbitmq_port = broker_config['rabbitmq']['port']
-                task_scheduler_celery_broker = 'amqp://guest:guest@{host}:{port}//'.format(
+                task_scheduler_celery_broker = 'pyamqp://guest:guest@{host}:{port}//'.format(
                     host=rabbitmq_host, port=rabbitmq_port
                 )
                 self.broker_url = '{task_scheduler_celery_broker}'.format(
@@ -63,6 +63,11 @@ class CeleryConfig(object):
 
             # print(beat_schedule)
             self.beat_schedule = beat_schedule
+
+            task_routes = list()
+            for a_route in celery_server_config['task_routes']:
+                task_routes.append((a_route['pattern'], {'queue': a_route['queue']}))
+            self.task_routes = (task_routes,)
 
     @staticmethod
     def load_celery_config():

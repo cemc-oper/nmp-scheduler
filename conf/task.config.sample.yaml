@@ -5,9 +5,11 @@ sms_status_task:
     password: password
 
   project:
-    dir: nwpc_sms_collector dir
+    dir: nwpc-sms-collector
     program: python binary
-    script: sms_status_collector.py collect --config=config_file_path
+    script: nwpc_sms_collector/sms_status_collector.py collect
+    post:
+      url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/status
 
 group_sms_status_task:
   -
@@ -18,6 +20,25 @@ group_sms_status_task:
     user: user
     password: password
 
+ecflow_status_task:
+  collector:
+    user: user
+    host: host
+    password: password
+
+  project:
+    dir: /some/path/nwpc-system-collector/nwpc-ecflow-collector/nwpc_ecflow_collector
+    program: /some/path/python3
+    script: ecflow_status_collector.py collect
+    post:
+      url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/status
+
+group_ecflow_status_task:
+  - owner: owner
+    repo: repo
+    ecflow_host: host
+    ecflow_port: post
+
 
 update_dingtalk_token_task:
   url: http://broker_host:broker_port/api/v2/dingtalk/access_token/get
@@ -27,12 +48,12 @@ update_weixin_token_task:
 
 sms_node_task:
   project:
-    dir: nwpc_sms_collector dir
+    dir: nwpc-sms-collector dir
     program: python binary
-    script: sms_node_collector.py variable
+    script: nwpc_sms_collector/sms_node_collector.py variable
   repo_config_dir: ./sms_node_task
   post:
-    url: http://broker_host:broker_port/api/v2/hpc/sms/{owner}/{repo}/task-check
+    url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/node-check
 
 
 hpc:

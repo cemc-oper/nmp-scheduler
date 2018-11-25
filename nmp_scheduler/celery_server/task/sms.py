@@ -4,7 +4,7 @@ import datetime
 import json
 import gzip
 import requests
-from fabric.api import run, cd, execute, env
+from fabric import Connection
 from celery import group
 
 from nmp_scheduler.celery_server.celery import app
@@ -31,30 +31,36 @@ def get_sms_status_task(repo):
     project_dir = config_dict['sms_status_task']['project']['dir']
     project_program = config_dict['sms_status_task']['project']['program']
     project_script = config_dict['sms_status_task']['project']['script']
+    post_url = config_dict['sms_status_task']['project']['post']['url']
 
     user = repo.get('user', hpc_user)
     password = repo.get('password', hpc_password)
     host = repo.get('host', hpc_host)
 
-    env_hosts = ['{user}@{host}'.format(user=user, host=host)]
-    env_password = '{password}'.format(password=password)
+    post_url = post_url.format(owner=owner_name, repo=repo_name)
 
-    env.hosts = env_hosts
-    env.password = env_password
+    host_for_connection = '{user}@{host}'.format(user=user, host=host)
+    connection = Connection(host_for_connection, connect_kwargs={
+        'password': password
+    })
 
-    def get_sms_status(sms_user, sms_name, user):
-        with cd(project_dir):
-            run("{program} {script} -o {owner} -r {repo} -u {user} -n {sms_name}".format(
-                program=project_program,
-                script=project_script,
-                owner=owner_name,
-                repo=repo_name,
-                sms_user=sms_user,
-                sms_name=sms_name,
-                user=user
+    def get_sms_status(c):
+        with c.cd(project_dir):
+            c.run(
+                "{program} {script} -o {owner} -r {repo} "
+                "--sms-user {sms_user} -n {sms_name} "
+                "--gzip --verbose --post-url {post_url}".format(
+                    program=project_program,
+                    script=project_script,
+                    owner=owner_name,
+                    repo=repo_name,
+                    sms_user=sms_user,
+                    sms_name=sms_name,
+                    user=user,
+                    post_url=post_url
             ))
 
-    execute(get_sms_status, sms_user=sms_user, sms_name=sms_name, user=user)
+    get_sms_status(connection)
 
 
 @app.task()
@@ -69,10 +75,13 @@ def get_group_sms_status_task():
     return
 
 
-def check_sms_node(project_conf, sms_info, sms_node):
+def check_sms_node(c, owner, repo, project_conf, sms_info, sms_node):
     """
     check a sms node. return check result.
-    
+
+    :param c: Fabric connection
+    :param owner: owner name
+    :param repo: repo name
     :param project_conf: config dict for program
         {
             'dir': program work dir,
@@ -132,26 +141,32 @@ def check_sms_node(project_conf, sms_info, sms_node):
 
     check_list_result = []
 
-    with cd(project_dir):
-        run_result = run(
-            "{program} {script} --sms-server={sms_server} "
-            "--sms-user={sms_user} --sms-password {sms_password} --node-path={node_path}"
-                .format(
+    with c.cd(project_dir):
+        run_result = c.run(
+            "{program} {script} --owner {owner} --repo={repo} "
+            "--sms-server={sms_server} --sms-user={sms_user} --sms-password {sms_password} "
+            "--node-path={node_path}".format(
                 program=project_program,
                 script=project_script,
+                owner=owner,
+                repo=repo,
                 sms_server=sms_server,
                 sms_user=sms_user,
                 sms_password=sms_password,
-                node_path=node_path
-            )).splitlines()
+                node_path=node_path),
+            hide='both'
+        )
+        std_output = run_result.stdout.splitlines()
         cur_line_no = 0
-        result_length = len(run_result)
-        while cur_line_no < result_length and (not run_result[cur_line_no].startswith("{")):
+        result_length = len(std_output)
+        while cur_line_no < result_length and (not std_output[cur_line_no].startswith("{")):
             cur_line_no += 1
 
-        response_json_string = '\n'.join(run_result[cur_line_no:])
+        response_json_string = '\n'.join(std_output[cur_line_no:])
 
-        sms_node_dict = json.loads(response_json_string)['data']['response']['node']
+        response = json.loads(response_json_string)
+
+        sms_node_dict = response['data']['response']['node']
         node_object = SmsNode.create_from_dict(sms_node_dict)
 
         for a_check_item in sms_node['check_list']:
@@ -176,7 +191,7 @@ def check_sms_node(project_conf, sms_info, sms_node):
                             expected_var_value = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y%m%d")
                         elif expected_var_value == 'yesterday':
                             expected_var_value = (
-                                datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1)
+                                    datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1)
                             ).strftime("%Y%m%d")
 
                         var = node_object.get_variable(var_name)
@@ -298,28 +313,31 @@ def get_sms_node_task(args):
     """
     config_dict = app.task_config.config
 
+    owner = args['owner']
+    repo = args['repo']
     host = args['auth']['host']
     port = args['auth']['port']
     user = args['auth']['user']
     password = args['auth']['password']
 
-    env_hosts = ['{user}@{host}'.format(user=user, host=host)]
-    env_password = '{password}'.format(password=password)
-
-    env.hosts = env_hosts
-    env.password = env_password
+    host_for_connection = '{user}@{host}:{port}'.format(user=user, host=host, port=port)
+    connection = Connection(host_for_connection, connect_kwargs={
+        'password': password
+    })
 
     current_task = args['task']
     nodes = current_task['nodes']
 
     node_result = []
     for a_node in nodes:
-        result = execute(
-            check_sms_node,
+        result = check_sms_node(
+            connection,
+            owner=owner,
+            repo=repo,
             project_conf=config_dict['sms_node_task']['project'],
             sms_info=args['sms'],
             sms_node=a_node)
-        node_result.extend(result.values())
+        node_result.append(result)
 
     result = {
         'app': 'nmp_scheduler',
@@ -328,6 +346,7 @@ def get_sms_node_task(args):
         'data': {
             'owner': args['owner'],
             'repo': args['repo'],
+            'time': datetime.datetime.utcnow().isoformat(),
             'request': {
                 'task': args['task'],
             },

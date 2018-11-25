@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 # coding=utf-8
-import datetime
-import json
-import gzip
-import requests
-from fabric.api import run, cd, execute, env
+from fabric import Connection
 from celery import group
 
 from nmp_scheduler.celery_server.celery import app
@@ -30,31 +26,36 @@ def get_ecflow_status_task(repo):
     project_dir = config_dict['ecflow_status_task']['project']['dir']
     project_program = config_dict['ecflow_status_task']['project']['program']
     project_script = config_dict['ecflow_status_task']['project']['script']
-    project_config = config_dict['ecflow_status_task']['project']['config']
+    post_url = config_dict['ecflow_status_task']['project']['post']['url']
 
     user = repo.get('user', collector_host_user)
     password = repo.get('password', collector_host_password)
     host = repo.get('host', collector_host_host)
+    post_url = post_url.format(owner=owner_name, repo=repo_name)
 
-    env_hosts = ['{user}@{host}'.format(user=user, host=host)]
-    env_password = '{password}'.format(password=password)
+    host_for_connection = '{user}@{host}'.format(user=user, host=host)
 
-    env.hosts = env_hosts
-    env.password = env_password
+    connection = Connection(host_for_connection, connect_kwargs={
+        'password': password
+    })
 
-    def get_ecflow_status():
-        with cd(project_dir):
-            run("{program} {script} --owner={owner} --repo={repo} --config={config} --host={ecflow_host} --port={ecflow_port} --verbose".format(
-                program=project_program,
-                script=project_script,
-                owner=owner_name,
-                repo=repo_name,
-                config=project_config,
-                ecflow_host=ecflow_host,
-                ecflow_port=ecflow_port
-            ))
+    def get_ecflow_status(c):
+        with c.cd(project_dir):
+            c.run(
+                "{program} {script} --owner={owner} --repo={repo} "
+                "--host={ecflow_host} --port={ecflow_port} --verbose --gzip "
+                "--post-url={post_url}".format(
+                    program=project_program,
+                    script=project_script,
+                    owner=owner_name,
+                    repo=repo_name,
+                    ecflow_host=ecflow_host,
+                    ecflow_port=ecflow_port,
+                    post_url=post_url
+                )
+            )
 
-    execute(get_ecflow_status)
+    get_ecflow_status(connection)
 
 
 @app.task()
@@ -73,7 +74,11 @@ if __name__ == "__main__":
     args = {
         'owner': 'nwp_xp',
         'repo': 'pi_nwpc_pd_bk',
-        'ecflow_host': '10.40.140.16',
+        'ecflow_host': '10.40.143.18',
         'ecflow_port': '31071'
     }
-    print(json.dumps(get_ecflow_status_task(args), indent=2))
+    # print(json.dumps(get_ecflow_status_task(args), indent=2))
+    import nmp_scheduler
+    result = nmp_scheduler.celery_server.task.ecflow.get_ecflow_status_task.delay(args)
+    result.get(timeout=10)
+    print(result)

@@ -1,6 +1,4 @@
 # coding=utf-8
-from fabric.api import run, cd, execute, env
-from celery import group
 import requests
 
 from nmp_scheduler.celery_server.celery import app

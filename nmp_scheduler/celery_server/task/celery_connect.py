@@ -15,6 +15,10 @@ def setup_sms_node_periodic_task(sender, **kwargs):
         print("there is no sms node tasks.")
         return
 
+    if 'repo_config_dir' not in task_config['repo_config_dir']:
+        print("there is no repo_config_dir")
+        return
+
     print("setup sms node periodic tasks")
     task_config_dir = str(pathlib.Path(app.task_config.config_file_path).parent)
     repo_config_dir = app.task_config.config['sms_node_task']['repo_config_dir']

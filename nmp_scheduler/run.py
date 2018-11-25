@@ -20,10 +20,15 @@ def cli(config_file):
 
 
 @cli.command()
-def worker():
+@click.option('--queues', help="worker's queues, default is None")
+def worker(queues):
     from nmp_scheduler.celery_server.celery import app
-    print(sys.argv)
-    app.Worker().start()
+    # print(sys.argv)
+    if queues:
+        app.select_queues(queues)
+    app.Worker(
+        loglevel='INFO'
+    ).start()
 
 
 @cli.command()

@@ -13,6 +13,18 @@ celery_server:
       user: user
       password: password
 
+  task_routes:
+    -
+      pattern: "nmp_scheduler.celery_server.task.sms.*"
+      queue: nmp_sms
+    -
+      pattern: "nmp_scheduler.celery_server.task.ecflow.*"
+      queue: nmp_ecflow
+    -
+      pattern: "nmp_scheduler.celery_server.task.hpc"
+      queue: nmp_hpc
+
+
 celery_beat:
   schedule: /tmp/celerybeat-schedule
   beat_schedule:

@@ -1,5 +1,5 @@
 # coding=utf-8
-from fabric.api import run, cd, execute, env
+from fabric import Connection
 from celery import group
 
 from nmp_scheduler.celery_server.celery import app
@@ -18,20 +18,20 @@ def get_hpc_disk_usage(param):
     project_program = config_dict['aix']['hpc']['disk_usage']['project']['program']
     project_script = config_dict['aix']['hpc']['disk_usage']['project']['script']
 
-    env_hosts = ['{user}@{host}'.format(user=user, host=host)]
-    env_password = '{password}'.format(password=password)
+    host_for_connection = '{user}@{host}'.format(user=user, host=host)
 
-    env.hosts = env_hosts
-    env.password = env_password
+    connection = Connection(host_for_connection, connect_kwargs={
+        'password': password
+    })
 
-    def get_disk_usage():
-        with cd(project_dir):
-            run("{program} {script}".format(
+    def get_disk_usage(c):
+        with c.cd(project_dir):
+            c.run("{program} {script}".format(
                 program=project_program,
                 script=project_script,
             ))
 
-    execute(get_disk_usage)
+    get_disk_usage(connection)
 
 
 @app.task()
@@ -59,20 +59,20 @@ def get_hpc_disk_space(param):
     project_program = config_dict['aix']['hpc']['disk_space']['project']['program']
     project_script = config_dict['aix']['hpc']['disk_space']['project']['script']
 
-    env_hosts = ['{user}@{host}'.format(user=user, host=host)]
-    env_password = '{password}'.format(password=password)
+    host_for_connection = '{user}@{host}'.format(user=user, host=host)
 
-    env.hosts = env_hosts
-    env.password = env_password
+    connection = Connection(host_for_connection, connect_kwargs={
+        'password': password
+    })
 
-    def get_disk_space():
-        with cd(project_dir):
-            run("{program} {script}".format(
+    def get_disk_space(c):
+        with c.cd(project_dir):
+            c.run("{program} {script}".format(
                 program=project_program,
                 script=project_script,
             ))
 
-    execute(get_disk_space)
+    get_disk_space(connection)
 
 
 @app.task()
@@ -100,20 +100,20 @@ def get_hpc_loadleveler_usage(param):
     project_program = config_dict['aix']['hpc']['loadleveler_status']['project']['program']
     project_script = config_dict['aix']['hpc']['loadleveler_status']['project']['script']
 
-    env_hosts = ['{user}@{host}'.format(user=user, host=host)]
-    env_password = '{password}'.format(password=password)
+    host_for_connection = '{user}@{host}'.format(user=user, host=host)
 
-    env.hosts = env_hosts
-    env.password = env_password
+    connection = Connection(host_for_connection, connect_kwargs={
+        'password': password
+    })
 
-    def get_disk_usage():
-        with cd(project_dir):
-            run("{program} {script}".format(
+    def get_disk_usage(c):
+        with c.cd(project_dir):
+            c.run("{program} {script}".format(
                 program=project_program,
                 script=project_script,
             ))
 
-    execute(get_disk_usage)
+    get_disk_usage(connection)
 
 
 @app.task()
@@ -133,4 +133,4 @@ if __name__ == "__main__":
     os.environ['MODE'] = 'develop'
     # print(task.hpc.get_group_hpc_loadleveler_status_task())
     # print(task.hpc.get_group_hpc_disk_usage_task.delay())
-    print(nwpc_monitor_task_scheduler.celery_server.task.aix.hpc.get_group_hpc_disk_space_task.delay())
+    print(get_group_hpc_disk_space_task.delay())
