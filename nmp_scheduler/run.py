@@ -1,6 +1,7 @@
 # coding=utf-8
 import os
 import sys
+import platform
 import pathlib
 import click
 
@@ -20,13 +21,16 @@ def cli(config_file):
 
 
 @cli.command()
-@click.option('--queues', help="worker's queues, default is None")
-def worker(queues):
+@click.option('--name', help="worker's name", required=True)
+@click.option('--queues', help="worker's queues, split by ',', default is None")
+def worker(queues, name):
     from nmp_scheduler.celery_server.celery import app
     # print(sys.argv)
     if queues:
-        app.select_queues(queues)
+        queue_list = queues.split(',')
+        app.select_queues(queue_list)
     app.Worker(
+        hostname='{name}@{host}'.format(name=name, host=platform.node()),
         loglevel='INFO'
     ).start()
 
