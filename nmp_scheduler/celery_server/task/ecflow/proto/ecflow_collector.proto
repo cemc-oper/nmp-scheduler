@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package ecflow_collector;
+
+message StatusRequest{
+    string owner = 1;
+    string repo = 2;
+    string host = 3;
+    string port = 4;
+    string config = 5;
+    string post_url = 6;
+    string content_encoding = 7;
+    bool disable_post = 8;
+    bool verbose = 9;
+}
+
+message Response{
+    string status = 1;
+}
+
+service EcflowCollector{
+    rpc CollectStatus(StatusRequest) returns (Response){}
+}

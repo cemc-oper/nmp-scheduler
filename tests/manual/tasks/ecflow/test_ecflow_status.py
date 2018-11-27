@@ -1,5 +1,5 @@
 # coding: utf-8
-from nmp_scheduler.celery_server.task.ecflow import get_ecflow_status_task
+from nmp_scheduler.celery_server.task.ecflow.status import get_ecflow_status_task
 
 
 def test_ecflow_status():

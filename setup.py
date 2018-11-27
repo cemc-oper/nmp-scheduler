@@ -25,7 +25,9 @@ setup(
         'redis',
         'celery',
         'fabric',
-        'nwpc_workflow_model'
+        'nwpc_workflow_model',
+        'grpcio',
+        'googleapis-common-protos',
     ],
 
     extras_require={

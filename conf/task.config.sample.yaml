@@ -20,24 +20,19 @@ group_sms_status_task:
     user: user
     password: password
 
-ecflow_status_task:
-  collector:
-    user: user
-    host: host
-    password: password
+ecflow:
+  status_task:
+    project:
+      server:
+        target_url: host:port
+      post:
+        url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/status
 
-  project:
-    dir: /some/path/nwpc-system-collector/nwpc-ecflow-collector/nwpc_ecflow_collector
-    program: /some/path/python3
-    script: ecflow_status_collector.py collect
-    post:
-      url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/status
-
-group_ecflow_status_task:
-  - owner: owner
-    repo: repo
-    ecflow_host: host
-    ecflow_port: post
+  group_ecflow_status_task:
+    - owner: owner
+      repo: repo
+      ecflow_host: host
+      ecflow_port: post
 
 
 update_dingtalk_token_task:
