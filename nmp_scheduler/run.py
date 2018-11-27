@@ -40,7 +40,7 @@ def beat():
     from nmp_scheduler.celery_server.celery import app, celery_config
     app.Beat(
         schedule=celery_config.config['celery_beat']['schedule'],
-        max_interval=5,
+        # max_interval=5,
         loglevel='DEBUG'
     ).run()
 
