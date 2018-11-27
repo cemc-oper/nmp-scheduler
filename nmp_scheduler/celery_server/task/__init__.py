@@ -1,3 +1,4 @@
+# coding: utf-8
 from nmp_scheduler.celery_server.task.sms import *
 from nmp_scheduler.celery_server.task.ecflow import *
 from nmp_scheduler.celery_server.task.cloud import *

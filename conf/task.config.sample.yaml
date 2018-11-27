@@ -1,34 +1,29 @@
-sms_status_task:
-  hpc:
-    user: user
-    host: host
-    password: password
-
-  project:
-    dir: nwpc-sms-collector
-    program: python binary
-    script: nwpc_sms_collector/sms_status_collector.py collect
-    post:
-      url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/status
-
-group_sms_status_task:
-  -
-    owner: owner
-    repo: repo
-    sms_user: sms_user
-    sms_name: sms_name
-    user: user
-    password: password
-
-ecflow:
+sms:
   status_task:
-    project:
+    collector:
       server:
         target_url: host:port
       post:
         url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/status
 
-  group_ecflow_status_task:
+  group_status_task:
+    -
+      owner: owner
+      repo: repo
+      sms_host: sms host
+      sms_prog: sms prog
+      sms_user: sms user
+      sms_name: sms name
+
+ecflow:
+  status_task:
+    collector:
+      server:
+        target_url: host:port
+      post:
+        url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/status
+
+  group_status_task:
     - owner: owner
       repo: repo
       ecflow_host: host

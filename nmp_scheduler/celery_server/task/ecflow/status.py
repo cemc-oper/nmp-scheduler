@@ -1,6 +1,5 @@
 # coding: utf-8
 from celery import group
-from fabric import Connection
 import grpc
 
 from nmp_scheduler.celery_server.celery import app
@@ -49,7 +48,7 @@ def get_ecflow_status_task(repo):
 def get_group_ecflow_status_task():
     config_dict = app.task_config.config
 
-    repos = config_dict['ecflow']['group_ecflow_status_task']
+    repos = config_dict['ecflow']['group_status_task']
 
     # celery task group
     g = group(get_ecflow_status_task.s(a_repo) for a_repo in repos)

@@ -30,7 +30,7 @@ celery_beat:
   beat_schedule:
     -
       name: collect_sms_suite_status
-      task: nmp_scheduler.celery_server.task.sms.get_group_sms_status_task
+      task: nmp_scheduler.celery_server.task.sms.status.get_group_sms_status_task
       schedule:
         type: crontab
         param:

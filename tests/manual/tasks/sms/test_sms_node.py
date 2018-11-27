@@ -1,5 +1,5 @@
 # coding: utf-8
-from nmp_scheduler.celery_server.task.sms import get_sms_node_task
+from nmp_scheduler.celery_server.task import get_sms_node_task
 from nmp_scheduler.celery_server.celery import app
 
 

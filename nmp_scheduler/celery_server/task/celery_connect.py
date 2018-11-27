@@ -5,7 +5,7 @@ import yaml
 from celery.schedules import crontab
 from nmp_scheduler.celery_server.celery import app
 
-from nmp_scheduler.celery_server.task.sms import get_sms_node_task
+from nmp_scheduler.celery_server.task.sms.node import get_sms_node_task
 
 
 @app.on_after_finalize.connect
