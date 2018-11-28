@@ -64,8 +64,8 @@ celery_beat:
         param:
           minute: '*/10'
     -
-      name: collect_hpc_loadleveler_status
-      task: nmp_scheduler.celery_server.task.hpc.get_group_hpc_loadleveler_status_task
+      name: collect_loadleveler_jobs
+      task: nmp_scheduler.celery_server.task.workload.loadleveler.get_group_jobs_task
       schedule:
         type: crontab
         param:

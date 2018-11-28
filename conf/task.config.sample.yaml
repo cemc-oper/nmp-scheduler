@@ -71,14 +71,18 @@ hpc:
         host: host
         port: port
 
-  loadleveler_status:
-    project:
-      dir: nwpc_hpc_collector dir
-      program: python binary
-      script: loadleveler_status.py collect --config=config_file_path
-    task_group:
-      -
-        user: user
-        password: password
-        host: host
-        port: port
+workload:
+  loadleveler:
+    collector:
+      server:
+        target_url: host:port
+    jobs:
+      post:
+        url: http://host:port/api/v3/workload/repos/{owner}/{repo}/jobs
+
+      task_group:
+        -
+          user: user
+          password: password
+          host: host
+          port: port
