@@ -6,14 +6,23 @@ sms:
       post:
         url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/status
 
-  group_status_task:
-    -
-      owner: owner
-      repo: repo
-      sms_host: sms host
-      sms_prog: sms prog
-      sms_user: sms user
-      sms_name: sms name
+    group_status_task:
+      -
+        owner: owner
+        repo: repo
+        sms_host: sms host
+        sms_prog: sms prog
+        sms_user: sms user
+        sms_name: sms name
+
+  node_task:
+    collector:
+      server:
+        target_url: host:port
+      post:
+        url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/status
+
+    repo_config_dir: ./sms_node_task
 
 ecflow:
   status_task:
@@ -21,7 +30,7 @@ ecflow:
       server:
         target_url: host:port
       post:
-        url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/status
+        url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/node-check
 
   group_status_task:
     - owner: owner
@@ -29,22 +38,27 @@ ecflow:
       ecflow_host: host
       ecflow_port: post
 
+workload:
+  loadleveler:
+    collector:
+      server:
+        target_url: host:port
+    jobs:
+      post:
+        url: http://host:port/api/v3/workload/repos/{owner}/{repo}/jobs
+
+      task_group:
+        -
+          user: user
+          password: password
+          host: host
+          port: port
 
 update_dingtalk_token_task:
   url: http://broker_host:broker_port/api/v2/dingtalk/access_token/get
 
 update_weixin_token_task:
   url: http://broker_host:broker_port/api/v2/weixin/access_token/get
-
-sms_node_task:
-  project:
-    dir: nwpc-sms-collector dir
-    program: python binary
-    script: nwpc_sms_collector/sms_node_collector.py variable
-  repo_config_dir: ./sms_node_task
-  post:
-    url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/node-check
-
 
 hpc:
   disk_usage:
@@ -71,18 +85,4 @@ hpc:
         host: host
         port: port
 
-workload:
-  loadleveler:
-    collector:
-      server:
-        target_url: host:port
-    jobs:
-      post:
-        url: http://host:port/api/v3/workload/repos/{owner}/{repo}/jobs
 
-      task_group:
-        -
-          user: user
-          password: password
-          host: host
-          port: port

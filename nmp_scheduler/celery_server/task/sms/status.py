@@ -52,7 +52,7 @@ def get_sms_status_task(repo):
 def get_group_sms_status_task():
     config_dict = app.task_config.config
 
-    repos = config_dict['sms']['group_status_task']
+    repos = config_dict['sms']['status_task']['group_status_task']
 
     # celery task group
     g = group(get_sms_status_task.s(a_repo) for a_repo in repos)

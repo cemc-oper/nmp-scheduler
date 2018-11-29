@@ -1,7 +1,7 @@
 # coding: utf-8
-from nmp_scheduler.celery_server.task.sms import *
-from nmp_scheduler.celery_server.task.ecflow import *
-from nmp_scheduler.celery_server.task.cloud import *
-from nmp_scheduler.celery_server.task.aix.hpc import *
-from nmp_scheduler.celery_server.task.celery_connect import *
-from nmp_scheduler.celery_server.task import workload
+import nmp_scheduler.celery_server.task.sms
+import nmp_scheduler.celery_server.task.ecflow
+import nmp_scheduler.celery_server.task.cloud
+import nmp_scheduler.celery_server.task.aix.hpc
+import nmp_scheduler.celery_server.task.celery_connect
+import nmp_scheduler.celery_server.task.workload

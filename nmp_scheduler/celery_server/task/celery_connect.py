@@ -1,3 +1,4 @@
+# coding: utf-8
 import datetime
 import os
 import pathlib
@@ -5,7 +6,7 @@ import yaml
 from celery.schedules import crontab
 from nmp_scheduler.celery_server.celery import app
 
-from nmp_scheduler.celery_server.task.sms.node import get_sms_node_task
+from nmp_scheduler.celery_server.task.sms.node import check_sms_node_task
 
 
 @app.on_after_finalize.connect
@@ -15,13 +16,13 @@ def setup_sms_node_periodic_task(sender, **kwargs):
         print("there is no sms node tasks.")
         return
 
-    if 'repo_config_dir' not in task_config['repo_config_dir']:
+    if 'repo_config_dir' not in task_config['sms']['node_task']:
         print("there is no repo_config_dir")
         return
 
     print("setup sms node periodic tasks")
     task_config_dir = str(pathlib.Path(app.task_config.config_file_path).parent)
-    repo_config_dir = app.task_config.config['sms_node_task']['repo_config_dir']
+    repo_config_dir = app.task_config.config['sms']['node_task']
     repo_config_dir = str(pathlib.Path(task_config_dir, repo_config_dir))
 
     for root, dirs, files in os.walk(repo_config_dir):
@@ -45,7 +46,6 @@ def setup_sms_node_periodic_task(sender, **kwargs):
                 task_args = {
                     'owner': config['owner'],
                     'repo': config['repo'],
-                    'auth': config['auth'],
                     'sms': config['sms'],
                     'task': a_task
                 }
@@ -64,7 +64,7 @@ def setup_sms_node_periodic_task(sender, **kwargs):
                         print('add periodic_task', a_task['name'], crontab_param_dict)
                         sender.add_periodic_task(
                             crontab(**crontab_param_dict),
-                            get_sms_node_task.s(task_args)
+                            check_sms_node_task.s(task_args)
                         )
                     else:
                         print("trigger type is not supported:", trigger_type)

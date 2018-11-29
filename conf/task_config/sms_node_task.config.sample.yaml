@@ -1,15 +1,12 @@
 owner: owner
 repo: repo
-auth:
-  host: host
-  port: port
-  user: user
-  password: password
 
 sms:
-  sms_server: sms_server
-  sms_user: sms_user
-  sms_password: sms_password
+  sms_host: sms host
+  sms_prog: sms prog
+  sms_name: sms server name
+  sms_user: sms user
+  sms_password: sms password
 
 task_list:
   -

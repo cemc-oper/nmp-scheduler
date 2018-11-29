@@ -4,27 +4,24 @@ import json
 
 import requests
 from fabric import Connection
+import grpc
 
 from nmp_scheduler.celery_server.celery import app
 from nwpc_workflow_model.sms import SmsNode
 
 
-def check_sms_node(c, owner, repo, project_conf, sms_info, sms_node):
+def check_sms_node(collector_config, owner, repo, sms_info, sms_node):
     """
     check a sms node. return check result.
 
-    :param c: Fabric connection
+    :param collector_config: collector_config
     :param owner: owner name
     :param repo: repo name
-    :param project_conf: config dict for program
-        {
-            'dir': program work dir,
-            'program': python executable,
-            'script': python script
-        }
     :param sms_info: sms server information
         {
-            'sms_server': sms server,
+            'sms_host': sms host,
+            'sms_prog': sms RPC prog,
+            'sms_name': sms server name,
             'sms_user': sms user,
             'sms_password': sms password
         }
@@ -62,99 +59,100 @@ def check_sms_node(c, owner, repo, project_conf, sms_info, sms_node):
 
         }
     """
-
-    project_dir = project_conf['dir']
-    project_program = project_conf['program']
-    project_script = project_conf['script']
-
-    sms_server = sms_info['sms_server']
+    sms_host = sms_info['sms_host']
+    sms_prog = sms_info['sms_prog']
+    sms_name = sms_info['sms_name']
     sms_user = sms_info['sms_user']
     sms_password = sms_info['sms_password']
 
     node_path = sms_node['node_path']
 
+    rpc_target = collector_config['server']['rpc_target']
+
     check_list_result = []
 
-    with c.cd(project_dir):
-        run_result = c.run(
-            "{program} {script} --owner {owner} --repo={repo} "
-            "--sms-server={sms_server} --sms-user={sms_user} --sms-password {sms_password} "
-            "--node-path={node_path}".format(
-                program=project_program,
-                script=project_script,
-                owner=owner,
-                repo=repo,
-                sms_server=sms_server,
-                sms_user=sms_user,
-                sms_password=sms_password,
-                node_path=node_path),
-            hide='both'
-        )
-        std_output = run_result.stdout.splitlines()
-        cur_line_no = 0
-        result_length = len(std_output)
-        while cur_line_no < result_length and (not std_output[cur_line_no].startswith("{")):
-            cur_line_no += 1
+    from nmp_scheduler.celery_server.task.sms.proto import sms_collector_pb2_grpc, sms_collector_pb2
+    status_request = sms_collector_pb2.VariableRequest(
+        owner=owner,
+        repo=repo,
+        sms_host=sms_host,
+        sms_prog=str(sms_prog),
+        sms_name=sms_name,
+        sms_user=sms_user,
+        sms_password=sms_password,
+        node_path=node_path,
+        verbose=False
+    )
 
-        response_json_string = '\n'.join(std_output[cur_line_no:])
+    app.log.get_default_logger().info('Getting sms variable for {owner}/{repo}...'.format(
+        owner=owner, repo=repo
+    ))
+    with grpc.insecure_channel(rpc_target) as channel:
+        stub = sms_collector_pb2_grpc.SmsCollectorStub(channel)
+        response = stub.CollectVariable(status_request)
+        app.log.get_default_logger().info(
+            'Getting sms variable for {owner}/{repo}...done: {response}'.format(
+                owner=owner, repo=repo, response=response.status
+            ))
 
-        response = json.loads(response_json_string)
+    result_string = response.result
+    result = json.loads(result_string)
 
-        sms_node_dict = response['data']['response']['node']
-        node_object = SmsNode.create_from_dict(sms_node_dict)
+    sms_node_dict = result['data']['response']['node']
+    node_object = SmsNode.create_from_dict(sms_node_dict)
 
-        for a_check_item in sms_node['check_list']:
-            check_type = a_check_item['type']
-            is_condition_fit = None
-            check_result = {
-                'type': check_type,
-                'is_condition_fit': is_condition_fit
-            }
+    for a_check_item in sms_node['check_list']:
+        check_type = a_check_item['type']
+        is_condition_fit = None
+        check_result = {
+            'type': check_type,
+            'is_condition_fit': is_condition_fit
+        }
 
-            if check_type == 'variable':
-                var_name = a_check_item['name']
-                check_result['name'] = var_name
+        if check_type == 'variable':
+            var_name = a_check_item['name']
+            check_result['name'] = var_name
 
-                value_type = a_check_item['value']['type']
-                value_operator = a_check_item['value']['operator']
+            value_type = a_check_item['value']['type']
+            value_operator = a_check_item['value']['operator']
 
-                if value_type == "date":
-                    if value_operator == 'equal':
-                        expected_var_value = a_check_item['value']['fields']
-                        if expected_var_value == 'current' or expected_var_value == 'today':
-                            expected_var_value = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y%m%d")
-                        elif expected_var_value == 'yesterday':
-                            expected_var_value = (
-                                    datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1)
-                            ).strftime("%Y%m%d")
+            if value_type == "date":
+                if value_operator == 'equal':
+                    expected_var_value = a_check_item['value']['fields']
+                    if expected_var_value == 'current' or expected_var_value == 'today':
+                        expected_var_value = datetime.datetime.now(tz=datetime.timezone.utc).strftime("%Y%m%d")
+                    elif expected_var_value == 'yesterday':
+                        expected_var_value = (
+                                datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=1)
+                        ).strftime("%Y%m%d")
 
-                        var = node_object.get_variable(var_name)
-                        if var.value == expected_var_value:
-                            is_condition_fit = True
-                        else:
-                            is_condition_fit = False
-
-                        check_result['value'] = var.value
-                        check_result['expected_value'] = expected_var_value
-                        check_result['is_condition_fit'] = is_condition_fit
-
-            elif check_type == 'status':
-                status = node_object.status
-                if a_check_item['value']['operator'] == 'in':
-                    fields = a_check_item['value']['fields']
-                    if status in fields:
+                    var = node_object.get_variable(var_name)
+                    if var.value == expected_var_value:
                         is_condition_fit = True
                     else:
                         is_condition_fit = False
 
-                check_result['value'] = status
-                check_result['expected_value'] = a_check_item['value']
-                check_result['is_condition_fit'] = is_condition_fit
+                    check_result['value'] = var.value
+                    check_result['expected_value'] = expected_var_value
+                    check_result['is_condition_fit'] = is_condition_fit
 
-            if is_condition_fit is None:
-                print("current var check is not supported", a_check_item)
+        elif check_type == 'status':
+            status = node_object.status
+            if a_check_item['value']['operator'] == 'in':
+                fields = a_check_item['value']['fields']
+                if status in fields:
+                    is_condition_fit = True
+                else:
+                    is_condition_fit = False
 
-            check_list_result.append(check_result)
+            check_result['value'] = status
+            check_result['expected_value'] = a_check_item['value']
+            check_result['is_condition_fit'] = is_condition_fit
+
+        if is_condition_fit is None:
+            print("current var check is not supported", a_check_item)
+
+        check_list_result.append(check_result)
 
     return {
         'node_path': node_path,
@@ -163,7 +161,7 @@ def check_sms_node(c, owner, repo, project_conf, sms_info, sms_node):
 
 
 @app.task()
-def get_sms_node_task(args):
+def check_sms_node_task(args):
     """
 
     :param args:
@@ -249,26 +247,18 @@ def get_sms_node_task(args):
 
     owner = args['owner']
     repo = args['repo']
-    host = args['auth']['host']
-    port = args['auth']['port']
-    user = args['auth']['user']
-    password = args['auth']['password']
-
-    host_for_connection = '{user}@{host}:{port}'.format(user=user, host=host, port=port)
-    connection = Connection(host_for_connection, connect_kwargs={
-        'password': password
-    })
 
     current_task = args['task']
     nodes = current_task['nodes']
 
+    collector_config = config_dict['sms']['node_task']['collector']
+
     node_result = []
     for a_node in nodes:
         result = check_sms_node(
-            connection,
+            collector_config,
             owner=owner,
             repo=repo,
-            project_conf=config_dict['sms_node_task']['project'],
             sms_info=args['sms'],
             sms_node=a_node)
         node_result.append(result)
@@ -294,7 +284,7 @@ def get_sms_node_task(args):
     }
 
     gzipped_data = gzip.compress(bytes(json.dumps(post_data), 'utf-8'))
-    url = config_dict['sms_node_task']['post']['url'].format(
+    url = collector_config['post']['url'].format(
         owner=args['owner'],
         repo=args['repo']
     )
@@ -309,12 +299,6 @@ if __name__ == "__main__":
     args = {
         'owner': 'owner',
         'repo': 'repo',
-        'auth': {
-            'host': 'host',
-            'port': 'port',
-            'user': 'user',
-            'password': 'password'
-        },
         'sms': {
             'sms_server': 'sms_server',
             'sms_user': 'sms_user',
@@ -358,4 +342,4 @@ if __name__ == "__main__":
             ]
         }
     }
-    print(json.dumps(get_sms_node_task(args), indent=2))
+    print(json.dumps(check_sms_node_task(args), indent=2))
