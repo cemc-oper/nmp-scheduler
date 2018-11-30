@@ -1,5 +1,5 @@
 # coding=utf-8
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='nmp-scheduler',
@@ -9,7 +9,7 @@ setup(
     description='The scheduler for NMP by NWPC.',
     long_description=__doc__,
 
-    packages=['nmp_scheduler'],
+    packages=find_packages(exclude=['conf', 'tests']),
 
     include_package_data=True,
 
