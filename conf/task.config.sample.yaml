@@ -49,6 +49,8 @@ workload:
 
       task_group:
         -
+          onwer: owner
+          repo: repo
           user: user
           password: password
           host: host
