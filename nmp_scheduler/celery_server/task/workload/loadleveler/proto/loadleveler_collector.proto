@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package loadleveler_collector;
+
+message JobsRequest{
+    string owner = 1;
+    string repo = 2;
+    string host = 3;
+    int32 port = 4;
+    string user = 5;
+    string password = 6;
+    string output_style = 7;
+    string post_url = 8;
+    string content_encoding = 9;
+    bool verbose = 10;
+}
+
+message QueuesRequest{
+    string owner = 1;
+    string repo = 2;
+    string host = 3;
+    int32 port = 4;
+    string user = 5;
+    string password = 6;
+    string output_style = 7;
+    string post_url = 8;
+    string content_encoding = 9;
+    bool verbose = 10;
+}
+
+message Response{
+    string status = 1;
+    string result = 2;
+}
+
+service LoadLevelerCollector{
+    rpc CollectJobs(JobsRequest) returns (Response){}
+    rpc CollectQueues(QueuesRequest) returns (Response){}
+}
