@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 setup(
     name='nmp-scheduler',
 
-    version='4.0',
+    version='4.0.0',
 
     description='The scheduler for NMP by NWPC.',
     long_description=__doc__,
