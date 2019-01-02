@@ -38,6 +38,16 @@ ecflow:
       ecflow_host: host
       ecflow_port: post
 
+      # optional section
+      collector:
+        # optional
+        server:
+          target_url: host:port
+
+        # optional
+        post:
+          url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/status
+
 workload:
   loadleveler:
     collector:

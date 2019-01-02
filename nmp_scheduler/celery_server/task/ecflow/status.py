@@ -17,6 +17,12 @@ def get_ecflow_status_task(repo):
 
     rpc_target = config_dict['ecflow']['status_task']['collector']['server']['rpc_target']
     post_url = config_dict['ecflow']['status_task']['collector']['post']['url']
+    if 'collector' in repo:
+        collector_config = repo['collector']
+        if 'server' in collector_config:
+            rpc_target = collector_config['server']['rpc_target']
+        if 'post' in collector_config:
+            post_url = collector_config['post']['url']
 
     post_url = post_url.format(owner=owner_name, repo=repo_name)
 
@@ -32,8 +38,8 @@ def get_ecflow_status_task(repo):
         verbose=True
     )
 
-    app.log.get_default_logger().info('getting ecflow status for {owner}/{repo}...'.format(
-        owner=owner_name, repo=repo_name
+    app.log.get_default_logger().info('getting ecflow status for {owner}/{repo}...on {rpc_target}'.format(
+        owner=owner_name, repo=repo_name, rpc_target=rpc_target
     ))
     with grpc.insecure_channel(rpc_target) as channel:
         stub = ecflow_collector_pb2_grpc.EcflowCollectorStub(channel)

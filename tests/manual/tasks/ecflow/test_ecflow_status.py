@@ -7,8 +7,15 @@ def test_ecflow_status():
         'owner': 'nwp_xp',
         'repo': 'pi_nwpc_pd_bk',
         'ecflow_host': '10.40.143.18',
-        'ecflow_port': '31071'
+        'ecflow_port': '31071',
+
+        'collector': {
+            'server': {
+                'rpc_target': "10.28.32.114:50061"
+            }
+        }
     }
+
     # print(json.dumps(get_ecflow_status_task(args), indent=2))
     result = get_ecflow_status_task.delay(args)
     result.get(timeout=20)
