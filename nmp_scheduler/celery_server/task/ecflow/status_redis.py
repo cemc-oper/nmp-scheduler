@@ -72,7 +72,7 @@ def get_ecflow_status_from_redis(repo: dict):
             'server_name': server_name,
             'ecflow_host': ecflow_host,
             'ecflow_port': ecflow_port,
-            'time': collected_time.isoformat(),
+            'time': collected_time.strftime("%Y-%m-%dT%H:%M:%S.%f"),
             'status': bunch_dict
         }
     }
