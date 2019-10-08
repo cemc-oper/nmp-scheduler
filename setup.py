@@ -28,6 +28,8 @@ setup(
         'nwpc_workflow_model',
         'grpcio',
         'googleapis-common-protos',
+        'python-dateutil',
+        'requests'
     ],
 
     extras_require={
