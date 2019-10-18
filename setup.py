@@ -23,7 +23,7 @@ setup(
         'mongoengine',
         'PyYAML',
         'redis',
-        'celery>=4.0,<4.2',
+        'celery',
         'fabric',
         'nwpc_workflow_model',
         'grpcio',
