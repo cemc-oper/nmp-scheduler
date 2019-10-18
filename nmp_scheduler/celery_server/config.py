@@ -9,7 +9,7 @@ class CeleryConfig(object):
     def __init__(self, config_file_path):
         self.config_file_path = config_file_path
         with open(config_file_path, 'r') as config_file:
-            config_dict = yaml.load(config_file)
+            config_dict = yaml.safe_load(config_file)
             self.config = config_dict
             celery_server_config = config_dict['celery_server']
             broker_config = celery_server_config['broker']
@@ -33,6 +33,15 @@ class CeleryConfig(object):
                     'db+mysql+mysqlconnector://{user}:{password}@{host}:{port}/celery_backend'.format(
                         user=mysql_user, password=mysql_password,
                         host=mysql_host, port=mysql_port
+                    )
+                self.result_backend = '{task_scheduler_celery_backend}'.format(
+                    task_scheduler_celery_backend=task_scheduler_celery_backend)
+            if 'redis' in backend_config:
+                redis_host = backend_config['redis']['host']
+                redis_port = backend_config['redis']['port']
+                task_scheduler_celery_backend = \
+                    'redis://@{host}:{port}/0'.format(
+                        host=redis_host, port=redis_port
                     )
                 self.result_backend = '{task_scheduler_celery_backend}'.format(
                     task_scheduler_celery_backend=task_scheduler_celery_backend)
@@ -90,7 +99,7 @@ class TaskConfig(object):
     def __init__(self, config_file_path):
         self.config_file_path = config_file_path
         with open(config_file_path, 'r') as config_file:
-            config_dict = yaml.load(config_file)
+            config_dict = yaml.safe_load(config_file)
             self.config = config_dict
 
     @staticmethod
