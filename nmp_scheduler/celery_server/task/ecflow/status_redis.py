@@ -4,12 +4,17 @@ import datetime
 import gzip
 
 from celery import group
+from celery.utils.log import get_task_logger
+
 import redis
 from dateutil.parser import parse
 import requests
 
 from nmp_scheduler.celery_server.celery import app
 from nwpc_workflow_model.ecflow import Bunch, NodeStatus
+
+
+logger = get_task_logger(__name__)
 
 
 def get_ecflow_status_records(owner: str, repo: str):
@@ -45,6 +50,7 @@ def generate_bunch(repo_name: str, status_records: dict):
 
 @app.task()
 def get_ecflow_status_from_redis(repo: dict):
+    logger.info(f"get task {repo}")
     owner_name = repo['owner']
     repo_name = repo['repo']
     ecflow_host = repo['ecflow_host']
@@ -53,9 +59,10 @@ def get_ecflow_status_from_redis(repo: dict):
 
     records = get_ecflow_status_records(owner_name, repo_name)
     if records is None:
+        logger.warning(f"{owner_name}/{repo_name}: ecflow records is None")
         return
 
-    collected_time = parse(records["collected_time"])
+    collected_time = parse(records["collected_time"]) + datetime.timedelta(hours=8)
     status_records = records["status_records"]
 
     bunch = generate_bunch(repo_name, status_records)
@@ -90,12 +97,15 @@ def get_ecflow_status_from_redis(repo: dict):
             post_url = collector_config['post']['url']
 
     post_url = post_url.format(owner=owner_name, repo=repo_name)
+    logger.info(f"{owner_name}/{repo_name}: post url: {post_url}")
 
     gzipped_data = gzip.compress(bytes(json.dumps(post_data), 'utf-8'))
 
-    requests.post(post_url, data=gzipped_data, headers={
+    response = requests.post(post_url, data=gzipped_data, headers={
         'content-encoding': 'gzip'
     })
+    logger.info(f"{owner_name}/{repo_name}: post to web: {response}")
+
     return
 
 
