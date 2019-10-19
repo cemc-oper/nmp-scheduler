@@ -32,6 +32,12 @@ ecflow:
       post:
         url: http://host:port/api/v3/workflow/repos/{owner}/{repo}/node-check
 
+    storage:
+      type: redis
+      host: redis host
+      port: redis port
+      db: redis db
+
   group_status_task:
     - owner: owner
       repo: repo
