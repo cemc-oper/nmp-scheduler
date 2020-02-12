@@ -26,8 +26,8 @@ def get_ecflow_status_task(repo):
 
     post_url = post_url.format(owner=owner_name, repo=repo_name)
 
-    from nmp_scheduler.celery_server.task.ecflow.proto import ecflow_collector_pb2_grpc, ecflow_collector_pb2
-    status_request = ecflow_collector_pb2.StatusRequest(
+    from nmp_scheduler.celery_server.task.ecflow.proto import ecflow_client_pb2_grpc, ecflow_client_pb2
+    status_request = ecflow_client_pb2.StatusRequest(
         owner=owner_name,
         repo=repo_name,
         host=ecflow_host,
@@ -42,7 +42,7 @@ def get_ecflow_status_task(repo):
         owner=owner_name, repo=repo_name, rpc_target=rpc_target
     ))
     with grpc.insecure_channel(rpc_target) as channel:
-        stub = ecflow_collector_pb2_grpc.EcflowCollectorStub(channel)
+        stub = ecflow_client_pb2_grpc.EcflowClientServiceStub(channel)
         response = stub.CollectStatus(status_request)
         app.log.get_default_logger().info(
             'getting ecflow status for {owner}/{repo}...done: {response}'.format(
