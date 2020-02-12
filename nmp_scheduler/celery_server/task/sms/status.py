@@ -1,13 +1,12 @@
 # coding: utf-8
 from celery import group
-import grpc
 
 from nmp_scheduler.celery_server.celery import app
+from nmp_scheduler.workflow.sms.status import get_and_post_sms_status
 
 
 @app.task()
-def get_sms_status_task(repo):
-
+def get_sms_status_task(repo: dict):
     owner_name = repo['owner']
     repo_name = repo['repo']
     sms_host = repo['sms_host']
@@ -21,31 +20,23 @@ def get_sms_status_task(repo):
 
     post_url = post_url.format(owner=owner_name, repo=repo_name)
 
-    from nmp_scheduler.celery_server.task.sms.proto import sms_collector_pb2_grpc, sms_collector_pb2
-    status_request = sms_collector_pb2.StatusRequest(
-        owner=owner_name,
-        repo=repo_name,
-        sms_host=sms_host,
-        sms_prog=str(sms_prog),
-        sms_name=sms_name,
-        sms_user=sms_user,
-        sms_password='1',
-        disable_post=False,
-        post_url=post_url,
-        content_encoding='gzip',
-        verbose=True
-    )
-
     app.log.get_default_logger().info('getting sms status for {owner}/{repo}...'.format(
         owner=owner_name, repo=repo_name
     ))
-    with grpc.insecure_channel(rpc_target) as channel:
-        stub = sms_collector_pb2_grpc.SmsCollectorStub(channel)
-        response = stub.CollectStatus(status_request)
-        app.log.get_default_logger().info(
-            'getting sms status for {owner}/{repo}...done: {response}'.format(
-                owner=owner_name, repo=repo_name, response=response.status
-            ))
+    response = get_and_post_sms_status(
+        owner_name,
+        repo_name,
+        sms_name,
+        sms_host,
+        sms_user,
+        sms_prog,
+        rpc_target,
+        post_url,
+    )
+    app.log.get_default_logger().info(
+        'getting sms status for {owner}/{repo}...done: {response}'.format(
+            owner=owner_name, repo=repo_name, response=response.status
+        ))
 
 
 @app.task()
