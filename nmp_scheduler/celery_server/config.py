@@ -1,50 +1,47 @@
 # coding=utf-8
 import os
 from pathlib import Path
+
 import yaml
 from celery.schedules import crontab
 
 
+SCHEDULER_CONFIG_ENV_VAR = "NWPC_MONITOR_TASK_SCHEDULER_CONFIG"
+
+
 class CeleryConfig(object):
-    def __init__(self, config_file_path):
+    def __init__(self, config_file_path: str or Path):
         self.config_file_path = config_file_path
-        with open(config_file_path, 'r') as config_file:
+        with open(config_file_path, "r") as config_file:
             config_dict = yaml.safe_load(config_file)
             self.config = config_dict
             celery_server_config = config_dict['celery_server']
             broker_config = celery_server_config['broker']
             backend_config = celery_server_config['backend']
 
-            if 'rabbitmq' in broker_config:
+            if "rabbitmq" in broker_config:
                 rabbitmq_host = broker_config['rabbitmq']['host']
                 rabbitmq_port = broker_config['rabbitmq']['port']
-                task_scheduler_celery_broker = 'pyamqp://guest:guest@{host}:{port}//'.format(
-                    host=rabbitmq_host, port=rabbitmq_port
-                )
-                self.broker_url = '{task_scheduler_celery_broker}'.format(
-                    task_scheduler_celery_broker=task_scheduler_celery_broker)
+                task_scheduler_celery_broker = f"pyamqp://guest:guest@{rabbitmq_host}:{rabbitmq_port}//"
+                self.broker_url = f"{task_scheduler_celery_broker}"
 
-            if 'mysql' in backend_config:
+            if "mysql" in backend_config:
                 mysql_host = backend_config['mysql']['host']
                 mysql_port = backend_config['mysql']['port']
                 mysql_user = backend_config['mysql']['user']
                 mysql_password = backend_config['mysql']['password']
-                task_scheduler_celery_backend = \
-                    'db+mysql+mysqlconnector://{user}:{password}@{host}:{port}/celery_backend'.format(
-                        user=mysql_user, password=mysql_password,
-                        host=mysql_host, port=mysql_port
-                    )
-                self.result_backend = '{task_scheduler_celery_backend}'.format(
-                    task_scheduler_celery_backend=task_scheduler_celery_backend)
-            if 'redis' in backend_config:
+                task_scheduler_celery_backend = (
+                    f"db+mysql+mysqlconnector:"
+                    f"//{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}"
+                    f"/celery_backend"
+                )
+                self.result_backend = f"{task_scheduler_celery_backend}"
+
+            if "redis" in backend_config:
                 redis_host = backend_config['redis']['host']
                 redis_port = backend_config['redis']['port']
-                task_scheduler_celery_backend = \
-                    'redis://@{host}:{port}/0'.format(
-                        host=redis_host, port=redis_port
-                    )
-                self.result_backend = '{task_scheduler_celery_backend}'.format(
-                    task_scheduler_celery_backend=task_scheduler_celery_backend)
+                task_scheduler_celery_backend = f"redis://@{redis_host}:{redis_port}/0"
+                self.result_backend = f"{task_scheduler_celery_backend}"
 
             self.include = [
                 'nmp_scheduler.celery_server.task'
@@ -68,7 +65,7 @@ class CeleryConfig(object):
                             'args': ()
                         }
                     else:
-                        print('we do not support this type: {schedule_type}'.format(schedule_type=item_schedule['type']))
+                        print(f"we do not support this type: {item_schedule['type']}")
 
             # print(beat_schedule)
             self.beat_schedule = beat_schedule
@@ -80,11 +77,11 @@ class CeleryConfig(object):
 
     @staticmethod
     def load_celery_config():
-        if 'NWPC_MONITOR_TASK_SCHEDULER_CONFIG' not in os.environ:
-            raise Exception('NWPC_MONITOR_TASK_SCHEDULER_CONFIG must be set.')
+        if SCHEDULER_CONFIG_ENV_VAR not in os.environ:
+            raise Exception(f'{SCHEDULER_CONFIG_ENV_VAR} must be set.')
 
-        config_file_path = os.environ['NWPC_MONITOR_TASK_SCHEDULER_CONFIG']
-        print("config file path:", config_file_path)
+        config_file_path = os.environ[SCHEDULER_CONFIG_ENV_VAR]
+        print(f"config file path: {config_file_path}")
 
         config = CeleryConfig(config_file_path)
         return config
@@ -96,13 +93,13 @@ class CeleryConfig(object):
 
 
 class TaskConfig(object):
-    def __init__(self, config_file_path):
+    def __init__(self, config_file_path: str or Path):
         self.config_file_path = config_file_path
         with open(config_file_path, 'r') as config_file:
             config_dict = yaml.safe_load(config_file)
             self.config = config_dict
 
-    @staticmethod
-    def get_config_file_dir():
+    @classmethod
+    def get_config_file_dir(cls):
         config_file_directory = os.path.dirname(__file__) + "/../conf"
         return config_file_directory
