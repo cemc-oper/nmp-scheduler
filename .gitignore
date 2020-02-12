@@ -118,3 +118,4 @@ node_modules/
 celerybeat.pid
 
 .cache/
+.vscode
