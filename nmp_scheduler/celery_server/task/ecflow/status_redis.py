@@ -10,25 +10,51 @@ import requests
 
 from nmp_scheduler.celery_server.celery import app
 from nmp_scheduler.workflow.ecflow.status import get_ecflow_status_records
-from nmp_scheduler.workflow.ecflow.util import generate_bunch
+from nmp_scheduler.workflow.ecflow.bunch import generate_bunch
 
 logger = get_task_logger(__name__)
 
 
 @app.task()
 def get_ecflow_status_from_redis(repo: dict):
-    logger.info(f"get task {repo}")
+    """
+
+    :param repo:
+        {
+            "owner": "owner name",
+            "repo": "repo name:,
+            "ecflow_host": "ecflow host",
+            "ecflow_port": "ecflow port",
+        }
+    :return:
+
+    ecflow status task config:
+        ```yaml
+        status_task:
+          collector:
+            post:
+              url: "broker url for ecflow status"
+          storage:
+            type: redis
+            host: "redis host"
+            port: redis port
+            db: redis db
+        ```
+    """
+    logger.info(f"begin to run task: {repo}")
     owner_name = repo['owner']
     repo_name = repo['repo']
     ecflow_host = repo['ecflow_host']
     ecflow_port = repo['ecflow_port']
     server_name = repo_name
 
-    redis_config = app.task_config.config["ecflow"]["status_task"]["storage"]
+    ecflow_status_task_config = app.task_config.config["ecflow"]["status_task"]
+
+    redis_config = ecflow_status_task_config["storage"]
 
     records = get_ecflow_status_records(redis_config, owner_name, repo_name)
     if records is None:
-        logger.warning(f"{owner_name}/{repo_name}: ecflow records is None")
+        logger.warning(f"[{owner_name}/{repo_name}] ecflow records is None")
         return
 
     collected_time = parse(records["collected_time"]) + datetime.timedelta(hours=8)
@@ -57,23 +83,21 @@ def get_ecflow_status_from_redis(repo: dict):
         'message': json.dumps(data)
     }
 
-    config_dict = app.task_config.config
-
-    post_url = config_dict['ecflow']['status_task']['collector']['post']['url']
+    post_url = ecflow_status_task_config['collector']['post']['url']
     if 'collector' in repo:
         collector_config = repo['collector']
         if 'post' in collector_config:
             post_url = collector_config['post']['url']
 
     post_url = post_url.format(owner=owner_name, repo=repo_name)
-    logger.info(f"{owner_name}/{repo_name}: post url: {post_url}")
+    logger.info(f"[{owner_name}/{repo_name}] post url: {post_url}")
 
     gzipped_data = gzip.compress(bytes(json.dumps(post_data), 'utf-8'))
 
     response = requests.post(post_url, data=gzipped_data, headers={
         'content-encoding': 'gzip'
     })
-    logger.info(f"{owner_name}/{repo_name}: post to web: {response}")
+    logger.info(f"[{owner_name}/{repo_name}] posted to web: {response}")
 
     return
 

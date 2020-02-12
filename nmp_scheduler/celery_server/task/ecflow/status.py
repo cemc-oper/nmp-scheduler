@@ -7,7 +7,6 @@ from nmp_scheduler.celery_server.celery import app
 
 @app.task()
 def get_ecflow_status_task(repo):
-
     owner_name = repo['owner']
     repo_name = repo['repo']
     ecflow_host = repo['ecflow_host']
