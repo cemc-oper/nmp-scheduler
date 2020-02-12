@@ -5,7 +5,6 @@ import gzip
 
 from celery import group
 from celery.utils.log import get_task_logger
-
 import redis
 from dateutil.parser import parse
 import requests
