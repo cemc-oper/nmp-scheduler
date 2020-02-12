@@ -5,46 +5,14 @@ import gzip
 
 from celery import group
 from celery.utils.log import get_task_logger
-import redis
 from dateutil.parser import parse
 import requests
 
 from nmp_scheduler.celery_server.celery import app
-from nwpc_workflow_model.ecflow import Bunch, NodeStatus
-
+from nmp_scheduler.workflow.ecflow.status import get_ecflow_status_records
+from nmp_scheduler.workflow.ecflow.util import generate_bunch
 
 logger = get_task_logger(__name__)
-
-
-def get_ecflow_status_records(owner: str, repo: str):
-    redis_config = app.task_config.config["ecflow"]["status_task"]["storage"]
-    client = redis.Redis(host=redis_config["host"], port=redis_config["port"], db=redis_config["db"])
-    key = f"{owner}/{repo}/status"
-    value = client.get(key)
-    if value is None:
-        return None
-    return json.loads(value)
-
-
-def get_name_from_path(repo_name: str, node_path: str):
-    if node_path == "/":
-        return repo_name
-    pos = node_path.rfind("/")
-    return node_path[pos+1:]
-
-
-def generate_bunch(repo_name: str, status_records: dict):
-    bunch = Bunch()
-    for status_record in status_records:
-        node_path = status_record["path"]
-        node_name = get_name_from_path(repo_name, node_path)
-        node = {
-            "path": node_path,
-            "status": NodeStatus(status_record["status"]),
-            "name": node_name
-        }
-        bunch.add_node_status(node)
-    return bunch
 
 
 @app.task()
@@ -56,7 +24,9 @@ def get_ecflow_status_from_redis(repo: dict):
     ecflow_port = repo['ecflow_port']
     server_name = repo_name
 
-    records = get_ecflow_status_records(owner_name, repo_name)
+    redis_config = app.task_config.config["ecflow"]["status_task"]["storage"]
+
+    records = get_ecflow_status_records(redis_config, owner_name, repo_name)
     if records is None:
         logger.warning(f"{owner_name}/{repo_name}: ecflow records is None")
         return

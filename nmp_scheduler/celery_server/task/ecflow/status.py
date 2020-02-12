@@ -26,7 +26,8 @@ def get_ecflow_status_task(repo):
 
     post_url = post_url.format(owner=owner_name, repo=repo_name)
 
-    from nmp_scheduler.celery_server.task.ecflow.proto import ecflow_client_pb2_grpc, ecflow_client_pb2
+    from nmp_scheduler.workflow.ecflow.proto import ecflow_client_pb2_grpc
+    from nmp_scheduler.workflow.ecflow.proto import ecflow_client_pb2
     status_request = ecflow_client_pb2.StatusRequest(
         owner=owner_name,
         repo=repo_name,
